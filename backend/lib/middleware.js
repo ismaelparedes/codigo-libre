@@ -23,8 +23,11 @@ export function withCors(handler) {
     const allowed = (process.env.ALLOWED_ORIGINS || "").split(",");
     const origin = req.headers.origin;
 
-    if (allowed.includes(origin)) {
-      res.setHeader("Access-Control-Allow-Origin", origin);
+    const isVercel = origin && origin.endsWith(".vercel.app");
+    const isLocalhost = origin && origin.startsWith("http://localhost:");
+
+    if (!origin || allowed.includes(origin) || isVercel || isLocalhost) {
+      res.setHeader("Access-Control-Allow-Origin", origin || "*");
     }
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
