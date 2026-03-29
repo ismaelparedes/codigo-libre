@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  courses     Course[]
+  tutorials   Tutorial[]
+
+  @@map("categories")
+}
+
+model Course {
+  id          String       @id @default(cuid())
+  title       String
+  slug        String       @unique
+  description String
+  content     String?
+  image       String?
+  price       Float        @default(0)
+  isFree      Boolean      @default(false)
+  status      ContentStatus @default(DRAFT)
+  featured    Boolean      @default(false)
+  duration    String?
+  level       Level        @default(BEGINNER)
+  categoryId  String
+  category    Category     @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("courses")
+}
+
+model Tutorial {
+  id          String       @id @default(cuid())
+  title       String
+  slug        String       @unique
+  excerpt     String?
+  content     String
+  image       String?
+  status      ContentStatus @default(DRAFT)
+  featured    Boolean      @default(false)
+  categoryId  String
+  category    Category     @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("tutorials")
+}
+
+model Testimonial {
+  id        String   @id @default(cuid())
+  name      String
+  role      String
+  content   String
+  avatar    String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("testimonials")
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum Level {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}

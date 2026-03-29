@@ -1,0 +1,20 @@
+{
+  "name": "codigolibre-backend",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vercel dev",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.10.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "prisma": "^5.10.0"
+  }
+}
