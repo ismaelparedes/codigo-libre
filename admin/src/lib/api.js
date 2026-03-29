@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3001/api",
+  baseURL: "https://project-6x876-backend.vercel.app/api",
   timeout: 10000,
 });
 
@@ -27,7 +27,7 @@ api.interceptors.response.use(
       }
       try {
         const { data } = await axios.post(
-          `${import.meta.env.VITE_API_URL || "http://localhost:3001/api"}/auth/refresh`,
+          `https://project-6x876-backend.vercel.app/api/auth/refresh`,
           { refreshToken }
         );
         localStorage.setItem("accessToken", data.accessToken);
