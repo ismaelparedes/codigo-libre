@@ -9,23 +9,69 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      Role     @default(ADMIN)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          Role      @default(STUDENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  enrollments   Enrollment[]
+  transactions  PaymentTransaction[]
 
   @@map("users")
 }
 
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
 model Category {
-  id          String    @id @default(cuid())
-  name        String    @unique
-  slug        String    @unique
+  id          String     @id @default(cuid())
+  name        String     @unique
+  slug        String     @unique
   description String?
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime   @default(now())
   courses     Course[]
   tutorials   Tutorial[]
 
@@ -33,39 +79,103 @@ model Category {
 }
 
 model Course {
-  id          String       @id @default(cuid())
+  id          String        @id @default(cuid())
   title       String
-  slug        String       @unique
+  slug        String        @unique
   description String
   content     String?
   image       String?
-  price       Float        @default(0)
-  isFree      Boolean      @default(false)
+  price       Float         @default(0)
+  isFree      Boolean       @default(false)
   status      ContentStatus @default(DRAFT)
-  featured    Boolean      @default(false)
+  featured    Boolean       @default(false)
   duration    String?
-  level       Level        @default(BEGINNER)
+  level       Level         @default(BEGINNER)
   categoryId  String
-  category    Category     @relation(fields: [categoryId], references: [id])
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  category    Category      @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  modules     CourseModule[]
+  enrollments Enrollment[]
 
   @@map("courses")
 }
 
-model Tutorial {
+model CourseModule {
+  id          String   @id @default(cuid())
+  title       String
+  order       Int      @default(0)
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("course_modules")
+}
+
+model Lesson {
   id          String       @id @default(cuid())
   title       String
-  slug        String       @unique
+  description String?
+  videoUrl    String?      // Vercel Blob URL or similar
+  content     String?      // Markdown or HTML content
+  order       Int          @default(0)
+  moduleId    String
+  module      CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  isFreePreview Boolean    @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("lessons")
+}
+
+model Enrollment {
+  id          String   @id @default(cuid())
+  userId      String
+  courseId    String
+  status      EnrollmentStatus @default(ACTIVE)
+  progress    Float    @default(0) // 0 to 100
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+model PaymentTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  amount      Float
+  currency    String   @default("USD")
+  status      PaymentStatus @default(PENDING)
+  provider    String?  // e.g. "MANUAL", "STRIPE"
+  referenceId String?  // External reference from provider
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payment_transactions")
+}
+
+model Tutorial {
+  id          String        @id @default(cuid())
+  title       String
+  slug        String        @unique
   excerpt     String?
   content     String
   image       String?
   status      ContentStatus @default(DRAFT)
-  featured    Boolean      @default(false)
+  featured    Boolean       @default(false)
   categoryId  String
-  category    Category     @relation(fields: [categoryId], references: [id])
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  category    Category      @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   @@map("tutorials")
 }
@@ -83,8 +193,10 @@ model Testimonial {
 }
 
 enum Role {
-  ADMIN
+  STUDENT
+  TEACHER
   EDITOR
+  ADMIN
 }
 
 enum ContentStatus {
@@ -96,4 +208,17 @@ enum Level {
   BEGINNER
   INTERMEDIATE
   ADVANCED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  SUSPENDED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
 }
